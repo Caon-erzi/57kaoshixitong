@@ -173,8 +173,12 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
     });
   } catch (error) {
     console.error("OpenAI fetch failed:", error);
+    const currentOrigin =
+      typeof window !== "undefined" && window.location?.origin
+        ? window.location.origin
+        : "当前网页域名";
     throw new Error(
-      `无法连接到请求地址：${requestUrl}。请检查中转站地址是否正确、网络是否正常，以及中转站是否允许当前网页域名跨域访问。`
+      `无法连接到请求地址：${requestUrl}。接口本身可能是通的，但中转站没有允许 ${currentOrigin} 跨域访问时，浏览器会直接报 Failed to fetch。请在中转站后台放行这个域名，或改用带后端代理的部署方式。`
     );
   }
 
