@@ -2,20 +2,7 @@ import { ExamQuestion } from "./types";
 
 const DEFAULT_MODEL = "gpt-5.4";
 const DEFAULT_BASE_URL = "https://new.fastaicode.top";
-
-const questionFields = [
-  "questionType",
-  "applicableType",
-  "questionTitle",
-  "fileUrl",
-  "optionA",
-  "optionB",
-  "optionC",
-  "optionD",
-  "optionE",
-  "optionF",
-  "answer",
-] as const;
+const REQUEST_TIMEOUT_MS = 90_000;
 
 const fileToDataUrl = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -51,29 +38,6 @@ const buildChatCompletionsUrl = (baseUrl?: string) => {
   }
 
   return `${normalized}/v1/chat/completions`;
-};
-
-const examQuestionSchema = {
-  name: "exam_questions",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    required: ["questions"],
-    properties: {
-      questions: {
-        type: "array",
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: [...questionFields],
-          properties: Object.fromEntries(
-            questionFields.map((field) => [field, { type: "string" }])
-          ),
-        },
-      },
-    },
-  },
 };
 
 const parseResponseText = (text: string): ExamQuestion[] => {
@@ -145,10 +109,13 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
 
   const requestUrl = buildChatCompletionsUrl(baseUrl);
   let response: Response;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     response = await fetch(requestUrl, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${key}`,
@@ -158,7 +125,8 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
         messages: [
           {
             role: "system",
-            content: "你负责把考试资料精准提取成可导入题库的结构化数据。",
+            content:
+              "你负责把考试资料精准提取成可导入题库的结构化 JSON。必须返回一个对象，格式为 {\"questions\": [...]}。",
           },
           {
             role: "user",
@@ -166,13 +134,16 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
           },
         ],
         response_format: {
-          type: "json_schema",
-          json_schema: examQuestionSchema,
+          type: "json_object",
         },
       }),
     });
   } catch (error) {
     console.error("OpenAI fetch failed:", error);
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("AI 解析超时，请稍后重试，或减少一次提交的文字/图片数量。");
+    }
+
     const currentOrigin =
       typeof window !== "undefined" && window.location?.origin
         ? window.location.origin
@@ -180,6 +151,8 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
     throw new Error(
       `无法连接到请求地址：${requestUrl}。接口本身可能是通的，但中转站没有允许 ${currentOrigin} 跨域访问时，浏览器会直接报 Failed to fetch。请在中转站后台放行这个域名，或改用带后端代理的部署方式。`
     );
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 
   if (!response.ok) {

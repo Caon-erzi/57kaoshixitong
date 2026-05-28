@@ -29,6 +29,9 @@ const App: React.FC = () => {
     setErrorMsg(null);
     try {
       const results = await parseExamContent(text, files, apiKey, baseUrl);
+      if (results.length === 0) {
+        throw new Error("AI 已返回结果，但没有识别到试题。请检查输入内容是否包含题干、选项和答案。");
+      }
       
       // Update data
       setData(prev => {
