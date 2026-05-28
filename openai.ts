@@ -1,9 +1,7 @@
 import { ExamQuestion } from "./types";
 
 const DEFAULT_MODEL = "gpt-5.4";
-const DEFAULT_BASE_URL = (import.meta as any).env?.DEV
-  ? "/api/openai"
-  : "https://new.fastaicode.top";
+const DEFAULT_BASE_URL = "https://new.fastaicode.top";
 
 const questionFields = [
   "questionType",
@@ -176,7 +174,7 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
   } catch (error) {
     console.error("OpenAI fetch failed:", error);
     throw new Error(
-      `无法连接到请求地址：${requestUrl}。如果直接填写中转站地址时出现 Failed to fetch，通常是浏览器跨域限制；本地开发请使用 /api/openai 代理，部署后需要后端代理或让中转站放行部署域名。`
+      `无法连接到请求地址：${requestUrl}。请检查中转站地址是否正确、网络是否正常，以及中转站是否允许当前网页域名跨域访问。`
     );
   }
 

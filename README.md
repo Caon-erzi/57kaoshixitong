@@ -15,7 +15,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/11aYMI49zyGKF9Rn8rUJ9MW
 
 1. Install dependencies:
    `npm install`
-2. Set `VITE_OPENAI_BASE_URL` and `VITE_OPENAI_API_KEY` in [.env.local](.env.local)
+2. Open the page and fill in your API key. The default request URL is `https://new.fastaicode.top`.
 3. Run the app:
    `npm run dev`
 
