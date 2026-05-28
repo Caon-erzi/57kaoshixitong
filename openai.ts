@@ -1,7 +1,9 @@
 import { ExamQuestion } from "./types";
 
 const DEFAULT_MODEL = "gpt-5.4";
-const DEFAULT_BASE_URL = "https://new.fastaicode.top";
+const DEFAULT_BASE_URL = (import.meta as any).env?.DEV
+  ? "/api/openai"
+  : "https://new.fastaicode.top";
 
 const questionFields = [
   "questionType",
