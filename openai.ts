@@ -41,7 +41,7 @@ const buildNetlifyFallbackUrl = (requestUrl: string) => {
       return null;
     }
 
-    return `/api/openai${url.pathname}${url.search}`;
+    return "/.netlify/functions/openai-proxy";
   } catch {
     return null;
   }
@@ -167,7 +167,7 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
           ? window.location.origin
           : "当前网页域名";
       throw new Error(
-        `无法连接到请求地址：${requestUrl}。接口本身可能是通的，但中转站没有允许 ${currentOrigin} 跨域访问时，浏览器会直接报 Failed to fetch。Netlify 部署时会自动尝试 /api/openai 代理；如果仍失败，请检查 Netlify 是否已重新部署并读取 netlify.toml。`
+        `无法连接到请求地址：${requestUrl}。接口本身可能是通的，但中转站没有允许 ${currentOrigin} 跨域访问时，浏览器会直接报 Failed to fetch。Netlify 部署时会自动尝试函数代理；如果仍失败，请检查 Netlify 是否已重新部署。`
       );
     }
   } finally {
@@ -183,6 +183,12 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
       message = errorJson.error?.message || errorJson.message || errorText;
     } catch {
       // Keep the plain response text when the server does not return JSON.
+    }
+
+    if (response.status === 504) {
+      throw new Error(
+        "OpenAI 请求失败 (504)：Netlify 或中转站等待模型返回超时。请先用少量文本测试；如果大段文字或多张图片仍超时，需要在中转站放行 Netlify 域名以便浏览器直连，或改用更长超时的后端服务。"
+      );
     }
 
     throw new Error(`OpenAI 请求失败 (${response.status})：${message}`);

@@ -20,4 +20,4 @@ View your app in AI Studio: https://ai.studio/apps/drive/11aYMI49zyGKF9Rn8rUJ9MW
    `npm run dev`
 
 The current model is `gpt-5.4`, called through an OpenAI-compatible Chat Completions endpoint.
-Netlify deployments use `netlify.toml` to proxy `/api/openai/*` to the relay if the browser blocks direct cross-origin requests.
+Netlify deployments include a serverless function fallback at `/.netlify/functions/openai-proxy` for cases where the browser blocks direct cross-origin requests.
