@@ -8,8 +8,8 @@ interface DataInputProps {
 }
 
 const DataInput: React.FC<DataInputProps> = ({ onAnalyze, isProcessing }) => {
-  const defaultApiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-  const defaultBaseUrl = (import.meta as any).env?.VITE_OPENAI_BASE_URL || process.env.OPENAI_BASE_URL || 'https://new.fastaicode.top';
+  const defaultApiKey = '';
+  const defaultBaseUrl = 'https://new.fastaicode.top';
   const [apiKey, setApiKey] = useState(defaultApiKey);
   const [baseUrl, setBaseUrl] = useState(defaultBaseUrl);
   const [text, setText] = useState('');

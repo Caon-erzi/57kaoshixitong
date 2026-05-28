@@ -15,8 +15,9 @@ View your app in AI Studio: https://ai.studio/apps/drive/11aYMI49zyGKF9Rn8rUJ9MW
 
 1. Install dependencies:
    `npm install`
-2. Open the page and fill in your API key. The default request URL is `https://new.fastaicode.top`.
+2. Open the page and fill in your API key. The request URL defaults to `https://new.fastaicode.top`.
 3. Run the app:
    `npm run dev`
 
 The current model is `gpt-5.4`, called through an OpenAI-compatible Chat Completions endpoint.
+Netlify deployments use `netlify.toml` to proxy `/api/openai/*` to the relay if the browser blocks direct cross-origin requests.

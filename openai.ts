@@ -13,16 +13,8 @@ const fileToDataUrl = (file: File): Promise<string> => {
   });
 };
 
-const getEnvValue = (viteName: string, processValue?: string) => {
-  const viteEnv = (import.meta as any).env?.[viteName];
-  return viteEnv || processValue || "";
-};
-
 const buildChatCompletionsUrl = (baseUrl?: string) => {
-  const rawBaseUrl =
-    baseUrl?.trim() ||
-    getEnvValue("VITE_OPENAI_BASE_URL", process.env.OPENAI_BASE_URL) ||
-    DEFAULT_BASE_URL;
+  const rawBaseUrl = baseUrl?.trim() || DEFAULT_BASE_URL;
   const normalized = rawBaseUrl.replace(/\/+$/, "");
 
   if (normalized.endsWith("/v1/chat/completions")) {
@@ -38,6 +30,21 @@ const buildChatCompletionsUrl = (baseUrl?: string) => {
   }
 
   return `${normalized}/v1/chat/completions`;
+};
+
+const buildNetlifyFallbackUrl = (requestUrl: string) => {
+  try {
+    const url = new URL(requestUrl);
+    const relayUrl = new URL(DEFAULT_BASE_URL);
+
+    if (url.origin !== relayUrl.origin) {
+      return null;
+    }
+
+    return `/api/openai${url.pathname}${url.search}`;
+  } catch {
+    return null;
+  }
 };
 
 const parseResponseText = (text: string): ExamQuestion[] => {
@@ -65,9 +72,7 @@ export const parseExamContent = async (
   apiKey?: string,
   baseUrl?: string
 ): Promise<ExamQuestion[]> => {
-  const key =
-    apiKey?.trim() ||
-    getEnvValue("VITE_OPENAI_API_KEY", process.env.OPENAI_API_KEY).trim();
+  const key = apiKey?.trim() || "";
 
   if (!key) {
     throw new Error("请提供 OpenAI API Key。");
@@ -108,49 +113,63 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
   }
 
   const requestUrl = buildChatCompletionsUrl(baseUrl);
-  let response: Response;
+  let response: Response | undefined;
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const requestBody = JSON.stringify({
+    model: DEFAULT_MODEL,
+    messages: [
+      {
+        role: "system",
+        content:
+          "你负责把考试资料精准提取成可导入题库的结构化 JSON。必须返回一个对象，格式为 {\"questions\": [...]}。",
+      },
+      {
+        role: "user",
+        content,
+      },
+    ],
+    response_format: {
+      type: "json_object",
+    },
+  });
+
+  const requestOptions: RequestInit = {
+    method: "POST",
+    signal: controller.signal,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: requestBody,
+  };
 
   try {
-    response = await fetch(requestUrl, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: DEFAULT_MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              "你负责把考试资料精准提取成可导入题库的结构化 JSON。必须返回一个对象，格式为 {\"questions\": [...]}。",
-          },
-          {
-            role: "user",
-            content,
-          },
-        ],
-        response_format: {
-          type: "json_object",
-        },
-      }),
-    });
+    response = await fetch(requestUrl, requestOptions);
   } catch (error) {
     console.error("OpenAI fetch failed:", error);
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new Error("AI 解析超时，请稍后重试，或减少一次提交的文字/图片数量。");
     }
 
-    const currentOrigin =
-      typeof window !== "undefined" && window.location?.origin
-        ? window.location.origin
-        : "当前网页域名";
-    throw new Error(
-      `无法连接到请求地址：${requestUrl}。接口本身可能是通的，但中转站没有允许 ${currentOrigin} 跨域访问时，浏览器会直接报 Failed to fetch。请在中转站后台放行这个域名，或改用带后端代理的部署方式。`
-    );
+    const fallbackUrl = buildNetlifyFallbackUrl(requestUrl);
+    if (fallbackUrl) {
+      try {
+        response = await fetch(fallbackUrl, requestOptions);
+      } catch (fallbackError) {
+        console.error("OpenAI fallback fetch failed:", fallbackError);
+      }
+    }
+
+    if (!response) {
+      const currentOrigin =
+        typeof window !== "undefined" && window.location?.origin
+          ? window.location.origin
+          : "当前网页域名";
+      throw new Error(
+        `无法连接到请求地址：${requestUrl}。接口本身可能是通的，但中转站没有允许 ${currentOrigin} 跨域访问时，浏览器会直接报 Failed to fetch。Netlify 部署时会自动尝试 /api/openai 代理；如果仍失败，请检查 Netlify 是否已重新部署并读取 netlify.toml。`
+      );
+    }
   } finally {
     window.clearTimeout(timeoutId);
   }
