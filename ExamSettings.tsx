@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Settings, Calculator, FileType } from 'lucide-react';
-import { ExamConfig, TypeSetting, WordHeaderConfig } from '../types';
+import { ExamConfig, TypeSetting, WordHeaderConfig } from './types';
 
 interface ExamSettingsProps {
   config: ExamConfig;

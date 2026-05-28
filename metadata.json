@@ -1,5 +1,5 @@
 {
-  "name": "Copy of 考试系统",
-  "description": "An intelligent tool to extract exam questions from images and text into a structured table format using Gemini AI.",
+  "name": "57车间考试系统",
+  "description": "An intelligent tool to extract exam questions from images and text into a structured table format using ChatGPT gpt-5.4.",
   "requestFramePermissions": []
 }

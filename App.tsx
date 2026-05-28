@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import DataInput from './components/DataInput';
-import ResultsTable from './components/ResultsTable';
-import ExamSettings from './components/ExamSettings';
-import { parseExamContent } from './services/gemini';
+import DataInput from './DataInput';
+import ResultsTable from './ResultsTable';
+import ExamSettings from './ExamSettings';
+import { parseExamContent } from './openai';
 import { ExamQuestion, ProcessStatus, ExamConfig, WordHeaderConfig } from './types';
 import { BrainCircuit, AlertCircle } from 'lucide-react';
 

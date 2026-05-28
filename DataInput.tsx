@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Upload, X, FileText, Image as ImageIcon, Key, Server } from 'lucide-react';
-import { FileInput } from '../types';
+import { FileInput } from './types';
 
 interface DataInputProps {
   onAnalyze: (text: string, files: File[], apiKey: string, baseUrl?: string) => void;
@@ -8,8 +8,10 @@ interface DataInputProps {
 }
 
 const DataInput: React.FC<DataInputProps> = ({ onAnalyze, isProcessing }) => {
-  const [apiKey, setApiKey] = useState('');
-  const [baseUrl, setBaseUrl] = useState('');
+  const defaultApiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+  const defaultBaseUrl = (import.meta as any).env?.VITE_OPENAI_BASE_URL || process.env.OPENAI_BASE_URL || 'https://new.fastaicode.top';
+  const [apiKey, setApiKey] = useState(defaultApiKey);
+  const [baseUrl, setBaseUrl] = useState(defaultBaseUrl);
   const [text, setText] = useState('');
   const [files, setFiles] = useState<FileInput[]>([]);
 
@@ -53,7 +55,7 @@ const DataInput: React.FC<DataInputProps> = ({ onAnalyze, isProcessing }) => {
           {/* API Key Input */}
           <div>
             <label className="block text-xs font-semibold text-blue-800 mb-1">
-              Gemini API Key (必填)
+              OpenAI API Key (必填)
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -62,7 +64,7 @@ const DataInput: React.FC<DataInputProps> = ({ onAnalyze, isProcessing }) => {
               <input
                 type="password"
                 className="block w-full pl-9 pr-3 py-2 border-gray-300 rounded-md focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                placeholder="AIzaSy..."
+                placeholder="sk-..."
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
               />
@@ -72,7 +74,7 @@ const DataInput: React.FC<DataInputProps> = ({ onAnalyze, isProcessing }) => {
           {/* Base URL Input */}
           <div>
             <label className="block text-xs font-semibold text-blue-800 mb-1">
-              服务器地址 (可选, 默认官方)
+              请求地址 (可选)
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -81,13 +83,13 @@ const DataInput: React.FC<DataInputProps> = ({ onAnalyze, isProcessing }) => {
               <input
                 type="text"
                 className="block w-full pl-9 pr-3 py-2 border-gray-300 rounded-md focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-                placeholder="https://generativelanguage.googleapis.com"
+                placeholder="https://new.fastaicode.top"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
               />
             </div>
             <p className="mt-1 text-xs text-blue-600 opacity-80">
-              如果你使用代理转发，请在此输入地址
+              默认使用 ChatGPT gpt-5.4，可填写兼容 OpenAI 的代理地址
             </p>
           </div>
         </div>

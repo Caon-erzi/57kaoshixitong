@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Download, Table as TableIcon, Copy, FileText } from 'lucide-react';
-import { ExamQuestion, ExamConfig, WordHeaderConfig } from '../types';
+import { ExamQuestion, ExamConfig, WordHeaderConfig } from './types';
 import saveAs from "file-saver";
 
 interface ResultsTableProps {
