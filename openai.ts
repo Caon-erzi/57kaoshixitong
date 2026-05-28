@@ -143,30 +143,40 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
     }
   }
 
-  const response = await fetch(buildChatCompletionsUrl(baseUrl), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: DEFAULT_MODEL,
-      messages: [
-        {
-          role: "system",
-          content: "你负责把考试资料精准提取成可导入题库的结构化数据。",
-        },
-        {
-          role: "user",
-          content,
-        },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: examQuestionSchema,
+  const requestUrl = buildChatCompletionsUrl(baseUrl);
+  let response: Response;
+
+  try {
+    response = await fetch(requestUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
       },
-    }),
-  });
+      body: JSON.stringify({
+        model: DEFAULT_MODEL,
+        messages: [
+          {
+            role: "system",
+            content: "你负责把考试资料精准提取成可导入题库的结构化数据。",
+          },
+          {
+            role: "user",
+            content,
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: examQuestionSchema,
+        },
+      }),
+    });
+  } catch (error) {
+    console.error("OpenAI fetch failed:", error);
+    throw new Error(
+      `无法连接到请求地址：${requestUrl}。如果直接填写中转站地址时出现 Failed to fetch，通常是浏览器跨域限制；本地开发请使用 /api/openai 代理，部署后需要后端代理或让中转站放行部署域名。`
+    );
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
