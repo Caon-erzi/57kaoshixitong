@@ -3,13 +3,65 @@ import { ExamQuestion } from "./types";
 const DEFAULT_MODEL = "gpt-5.4";
 const DEFAULT_BASE_URL = "https://new.fastaicode.top";
 const REQUEST_TIMEOUT_MS = 90_000;
+const MAX_IMAGE_DIMENSION = 1600;
+const JPEG_QUALITY = 0.82;
 
 const fileToDataUrl = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    if (!file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      const scale = Math.min(
+        1,
+        MAX_IMAGE_DIMENSION / Math.max(image.width, image.height)
+      );
+      const width = Math.max(1, Math.round(image.width * scale));
+      const height = Math.max(1, Math.round(image.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const context = canvas.getContext("2d");
+      if (!context) {
+        reject(new Error("图片处理失败，请换一张图片重试。"));
+        return;
+      }
+
+      context.drawImage(image, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("图片压缩失败，请换一张图片重试。"));
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        },
+        "image/jpeg",
+        JPEG_QUALITY
+      );
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("图片读取失败，请确认图片文件正常。"));
+    };
+
+    image.src = objectUrl;
   });
 };
 
@@ -172,6 +224,22 @@ ${textInput.trim() ? `\n用户粘贴的文本：\n${textInput}` : ""}
     }
   } finally {
     window.clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    if (response.status === 504) {
+      const fallbackUrl = buildNetlifyFallbackUrl(requestUrl);
+      if (fallbackUrl && requestUrl !== fallbackUrl) {
+        try {
+          const fallbackResponse = await fetch(fallbackUrl, requestOptions);
+          if (fallbackResponse.ok || fallbackResponse.status !== 504) {
+            response = fallbackResponse;
+          }
+        } catch (fallbackError) {
+          console.error("OpenAI 504 fallback failed:", fallbackError);
+        }
+      }
+    }
   }
 
   if (!response.ok) {
